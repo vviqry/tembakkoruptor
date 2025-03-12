@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Game Tembak Koruptor</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            text-align: left;
+            margin: 0;
+            position: relative;
+            overflow: hidden;
+            background-image: url('images/background.jpg'); /* Ganti dengan gambar latar */
+            background-size: cover;
+            background-position: center;
+        }
+        .tebal {
+            font-weight: bold;
+            position: static;
+        }
+        #target {
+            position: absolute;
+        }
+        #info {
+            position: absolute;
+            left: 20px;
+            top: 20px;
+            background-color: rgba(255, 255, 255, 0.7); /* Background semi-transparan untuk visibilitas */
+            padding: 10px;
+            border-radius: 5px;
+        }
+        #gameTitle {
+            text-align: center;
+            margin-top: 20px;
+            color: black; /* Warna putih agar terlihat di background */
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5); /* Bayangan untuk kontras */
+        }
+        #restartButton {
+            position: absolute;
+            left: 50%;
+            top: 60%;
+            transform: translate(-50%, -50%);
+            width: 150px;
+            height: 84px;
+            background-color: red;
+            color: black;
+            font-size: 16px;
+            font-weight: bold;
+            border: none;
+            cursor: pointer;
+            display: none;
+            border-radius: 20%;
+            overflow: hidden;
+            text-align: center;
+            line-height: 84px;
+            margin-top: 40vh;
+            animation: pulse 1s infinite; 
+        }
+        #restartButton:hover {
+            background-color: darkred;
+        }
+        #musicButton {
+            margin-top: 40px;
+            position: absolute;
+            left: 20px;
+            top: 100px; /* Letakkan di bawah info */
+            width: 120px;
+            height: 40px;
+            background-color: #4CAF50; /* Hijau */
+            color: white;
+            font-size: 14px;
+            font-weight: bold;
+            border: none;
+            cursor: pointer;
+            border-radius: 5px;
+            text-align: center;
+            line-height: 40px;
+        }
+        #musicButton:hover {
+            background-color: #45a049;
+        }
+        #koruptorEnd {
+            margin-top: 500px;
+            position: absolute;
+            left: 50%;
+            top: 40%; /* Sedikit di atas tombol restart */
+            transform: translate(-50%, -50%);
+            width: 400px; /* Ukuran sedang */
+            height: 200px;
+            border-radius: 10%; /* Radius 20% */
+            display: none; /* Sembunyikan sampai game selesai */
+        }
+        @keyframes pulse {
+            0% { transform: translate(-50%, -50%) scale(1); }
+            50% { transform: translate(-50%, -50%) scale(1.05); }
+            100% { transform: translate(-50%, -50%) scale(1); }
+        }
+    </style>
+</head>
+<body>
+    <h1 id="gameTitle">"TEMBAK MATI KORUPTOR"</h1>
+    <div id="info">
+        <p class="tebal">Skor Terbaik: <span id="skorTerbaik">Belum ada</span></p>
+        <p class="tebal">Waktu: <span id="waktu">0</span></p>
+    </div>
+    <img id="target" src="koruptor.png" width="100" height="100">
+    
+    <!-- Gambar koruptor saat game selesai -->
+    <img id="koruptorEnd" src="korup.jpg" alt="Koruptor">
+
+    <!-- Tombol untuk kontrol musik -->
+    <button id="musicButton">Putar Musik</button>
+
+    <!-- Elemen audio untuk tembakan -->
+    <audio id="explosionSound" preload="auto">
+        <source src="pistol.mp3" type="audio/mpeg">
+        Maaf, browser Anda tidak mendukung elemen audio.
+    </audio>
+
+    <!-- Elemen audio untuk musik latar -->
+    <audio id="bgMusic" preload="auto" loop>
+        <source src="game1.mp3" type="audio/mpeg">
+        Maaf, browser Anda tidak mendukung elemen audio.
+    </audio>
+
+    <!-- Elemen audio untuk suara tertawa -->
+    <audio id="laughSound" preload="auto">
+        <source src="lol.mp3" type="audio/mpeg">
+        Maaf, browser Anda tidak mendukung elemen audio.
+    </audio>
+
+    <!-- Tombol untuk memulai ulang -->
+    <button id="restartButton">Tembak Koruptor</button>
+
+    <script>
+        let klik = 0; 
+        let waktuMulai;
+        let skorTerbaik = localStorage.getItem("skorTerbaik") || "Belum ada";
+        let isMusicPlaying = false; // Flag untuk status musik
+
+        const maxWidth = window.innerWidth - 100; 
+        const maxHeight = window.innerHeight - 100; 
+        
+        document.getElementById("skorTerbaik").innerText = skorTerbaik === "Belum ada" ? "Belum ada" : skorTerbaik + " detik";
+
+        // Definisikan elemen audio dan tombol
+        let bgMusic = document.getElementById("bgMusic");
+        let musicButton = document.getElementById("musicButton");
+        let laughSound = document.getElementById("laughSound"); // Suara tertawa
+
+        // Fungsi untuk memunculkan koruptor di seluruh layar
+        function munculKoruptor() {
+            let gambar = document.getElementById("target");
+            let atas = Math.random() * maxHeight; // Posisi atas acak sesuai tinggi layar
+            let kiri = Math.random() * maxWidth; // Posisi kiri acak sesuai lebar layar
+
+            gambar.src = "koruptor.png"; // Gambar jadi koruptor lagi
+            gambar.style.top = atas + "px"; // Atur posisi atas
+            gambar.style.left = kiri + "px"; // Atur posisi kiri
+            gambar.style.width = "100px"; // Ukuran tetap 100x100 saat muncul
+            gambar.style.height = "100px"; // Ukuran tetap 100x100 saat muncul
+            gambar.style.display = "block"; // Pastikan gambar terlihat
+
+            // Kalau ini klik pertama, mulai hitung waktu
+            if (klik === 0) {
+                waktuMulai = new Date().getTime(); // Catat waktu mulai
+            }
+        }
+
+        // Fungsi untuk mereset permainan
+        function resetGame() {
+            klik = 0; // Reset jumlah klik
+            document.getElementById("waktu").innerText = "0"; // Reset waktu di layar
+            document.getElementById("restartButton").style.display = "none"; // Sembunyikan tombol
+            document.getElementById("koruptorEnd").style.display = "none"; // Sembunyikan gambar koruptor
+
+            // Reset dan putar ulang musik kalau sedang aktif
+            if (isMusicPlaying) {
+                bgMusic.pause(); // Hentikan musik
+                bgMusic.currentTime = 0; // Reset ke awal
+                bgMusic.play().catch(function(error) {
+                    console.log("Error playing background music: ", error);
+                });
+            }
+
+            munculKoruptor(); // Mulai ulang permainan
+        }
+
+        // Ketika tombol musik diklik
+        musicButton.onclick = function() {
+            if (!isMusicPlaying) {
+                bgMusic.volume = 0.2; // Set volume (opsional)
+                bgMusic.play().catch(function(error) {
+                    console.log("Error playing background music: ", error);
+                });
+                musicButton.innerText = "Matikan Musik"; // Ubah teks tombol
+                isMusicPlaying = true;
+            } else {
+                bgMusic.pause(); // Hentikan musik
+                musicButton.innerText = "Putar Musik"; // Ubah teks tombol
+                isMusicPlaying = false;
+            }
+        };
+
+        // Ketika gambar diklik
+        document.getElementById("target").onclick = function() {
+            let gambar = document.getElementById("target");
+            klik++; // Tambah jumlah klik
+
+            // Mainkan suara pistol
+            let explosionSound = document.getElementById("explosionSound");
+            explosionSound.currentTime = 0; // Reset suara ke awal
+            explosionSound.play().catch(function(error) {
+                console.log("Error playing sound: ", error);
+            });
+
+            // Ganti gambar jadi ledakan
+            gambar.src = "ledakan.png";
+            gambar.style.width = "170px"; // Ledakan lebih besar
+            gambar.style.height = "170px"; // Ledakan lebih besar
+
+            // Sembunyikan gambar setelah 0,1 detik
+            setTimeout(function() {
+                gambar.style.display = "none"; // Gambar hilang
+
+                // Kalau belum 5 klik, munculkan koruptor lagi
+                if (klik < 5) {
+                    setTimeout(munculKoruptor, 200); // Tunggu 0,2 detik lalu muncul lagi
+                } 
+                // Kalau sudah 5 klik, game selesai
+                else {
+                    let waktuSelesai = new Date().getTime(); // Catat waktu selesai
+                    let totalWaktu = (waktuSelesai - waktuMulai) / 1000; // Hitung waktu dalam detik
+                    document.getElementById("waktu").innerText = totalWaktu + " detik"; // Tampilkan waktu
+
+                    // Cek dan simpan skor terbaik
+                    if (skorTerbaik === "Belum ada" || totalWaktu < skorTerbaik) {
+                        skorTerbaik = totalWaktu;
+                        localStorage.setItem("skorTerbaik", totalWaktu); // Simpan di browser
+                        document.getElementById("skorTerbaik").innerText = totalWaktu + " detik";
+                    }
+
+                    // Tampilkan tombol restart dan gambar koruptor
+                    document.getElementById("restartButton").style.display = "block";
+                    document.getElementById("koruptorEnd").style.display = "block";
+
+                    // Mainkan suara tertawa
+                    laughSound.currentTime = 0; // Reset suara ke awal
+                    laughSound.play().catch(function(error) {
+                        console.log("Error playing laugh sound: ", error);
+                    });
+                }
+            }, 100); // Ledakan tampil selama 0,1 detik
+        };
+
+        // Ketika tombol restart diklik
+        document.getElementById("restartButton").onclick = function() {
+            resetGame();
+        };
+
+        // Mulai game dengan memunculkan koruptor pertama
+        munculKoruptor();
+    </script>
+</body>
+</html>
